@@ -2,20 +2,21 @@
 clear all;
 close all;
 
-destination_foder = "./mat";
+destination_foder = "./mat/";
 blacklist = ["gazebo","dynamic_reconfigure", "visual"];
-whitelist = ["lateral_control"];
+whitelist = [];
 
 
 %% Load Bag
 
  % Open Bag and select topic
- bagToMat(whitelist, blacklist, false)
+ bagToMat(whitelist, blacklist, false, destination_foder)
+
 
 
 %% Main function to extract and save data from one or multiple rosbags
 
-function bagToMat(whitelist, blacklist, use_last_name)
+function bagToMat(whitelist, blacklist, use_last_name, destination_foder)
     [files,paths] = uigetfile('*.bag', 'Select bag files', 'MultiSelect', 'on');
     file_paths = fullfile(paths, files);
 
@@ -28,7 +29,7 @@ function bagToMat(whitelist, blacklist, use_last_name)
     if ischar(blacklist)
         blacklist = {blacklist}; % Convert single string to cell array
     end
-    if ischar(whitelist)
+    if ischar(whitelist) 
         whitelist = {whitelist}; % Convert single string to cell array
     end
 
@@ -57,11 +58,15 @@ function bagToMat(whitelist, blacklist, use_last_name)
         % Itereate trough al topics and load the messages
         
         for j=1:length(bag_topics)
-            if(~contains(bag_topics(j), blacklist) && contains(bag_topics(j), whitelist))
-                data = getMatFromTopic(bag, bag_topics(j), start_time, use_last_name, bag_name, data);
+            if(isempty(blacklist) || ~contains(bag_topics(j), blacklist)) && (isempty(whitelist) || contains(bag_topics(j), whitelist))
+                data = getMatFromTopic(bag, bag_topics(j), start_time, use_last_name, "", data);
             end
         end
-        output_file = [bag_name, '.mat']; % Generate the output file name
+        output_file = fullfile(destination_foder, bag_name + ".mat");
+        % Create the directory if it doesn't exist
+        if ~isfolder(destination_foder)
+            mkdir(destination_foder);
+        end
         save(output_file, '-struct', 'data'); % Save the data structure to a .mat file
     end
 
@@ -114,7 +119,7 @@ function data = getData( msg_struct, tstamps_rel, base_name, only_last_name, dat
                 var_temp = temp;
             end
             
-            x = char(name_new(i));
+            x = genvarname(char(name_new(i)));
             % Append data to the data structure
             if isfield(data, x)
                 data.(x) = [data.(x); var_temp];
@@ -128,7 +133,7 @@ function data = getData( msg_struct, tstamps_rel, base_name, only_last_name, dat
             continue;
         end
 
-        x = char(name_new(i));
+        x = genvarname(char(name_new(i)));
         
         var_temp = double(temp');
         % Append data to the data structure
