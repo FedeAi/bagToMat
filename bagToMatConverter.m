@@ -155,7 +155,8 @@ function data = getMatFromTopic(bag, Topic, start_time, only_last_name, base_nam
         tstamps = tstamps_sec*1e9 + tstamps_nsec;
         tstamps_rel = (tstamps - start_time)/1e9;
     else
-        tstamps_rel = [0];
+        % USE BAG TIME
+        tstamps_rel = bag.MessageList(bag.MessageList.Topic == categorical(Topic), :).Time;
     end
 
     leading_name = "";
